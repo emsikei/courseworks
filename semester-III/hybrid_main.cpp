@@ -7,17 +7,7 @@
 
 #include "headers/hybrid/hybrid.h"
 
-std::ostream &operator<<(std::ostream &os, const std::vector<std::string> &values)
-{
-    if (!os.good())
-        return os;
-
-    for (auto value : values)
-    {
-        os << value << " ";
-    }
-    return os;
-}
+#include "headers/overloads.h"
 
 int main()
 {

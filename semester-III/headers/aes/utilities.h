@@ -68,6 +68,16 @@ std::string convert_ASCII(std::string hex)
 
 std::string generateSymmetricKey(size_t length)
 {
+  switch(length) {
+    case 16:
+    case 24:
+    case 32: 
+      break;
+    default:
+      std::cout << "Key must be 16/24/32 characters long!" << std::endl;
+      exit(-1);
+  }
+
   std::string str("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
 
   std::random_device rd;

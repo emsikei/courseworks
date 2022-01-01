@@ -5,17 +5,36 @@
 #include <cstring>
 #include "lookup_boxes.h"
 #include "utilities.h"
+#include "constants.h"
 
-/* Function: key_expansion_core
- * ----------------------------
- * Sets "in" to rotation of all in bytes to the left and XOR with RCon index i.
- *
- * Rotates 4 bytes to the left and moves 8 MSB bits to 8 LSB slot then
- * multiplies by RCon index i.
- *
- * in: bytes to be rotated
- * i: RCon index to multiply by
- */
+unsigned int getRoundCount(unsigned int key_length)
+{
+  switch (key_length)
+  {
+  case 16:
+    return ROUNDS_128;
+  case 24:
+    return ROUNDS_196;
+  case 32:
+    return ROUNDS_256;
+  }
+  return 0;
+}
+
+unsigned int getExpansionKeySize(unsigned int key_length)
+{
+  switch (key_length)
+  {
+  case 16:
+    return EXPANSION_KEY_SIZE_128;
+  case 24:
+    return EXPANSION_KEY_SIZE_196;
+  case 32:
+    return EXPANSION_KEY_SIZE_256;
+  }
+  return 0;
+}
+
 void key_expansion_core(unsigned char *in, unsigned char i)
 {
   unsigned int *q = (unsigned int *)in;
@@ -31,55 +50,39 @@ void key_expansion_core(unsigned char *in, unsigned char i)
   in[0] ^= rcon[i];
 }
 
-/* Function: key_expansion
- * -----------------------
- * Takes 16 byte input key and expands to 176 bytes.
- *
- * The key is expanded to 176 bytes which allows for 10 key uses.
- *
- * input_key: 16 byte key used for expansion
- * expanded_key: is set to resulting expanded key
- */
-void key_expansion(unsigned char *input_key, unsigned char *expanded_keys)
+void key_expansion(unsigned char *input_key, unsigned char *expanded_key)
 {
   // Set first 16 bytes to input_key
   for (int i = 0; i < 16; i++)
-    expanded_keys[i] = input_key[i];
+    expanded_key[i] = input_key[i];
 
   unsigned int bytes_generated = 16;
   int rcon_iteration = 1;
   unsigned char temp[4];
 
-  // Generate the next 160 bytes
-  while (bytes_generated < 176)
+  unsigned int input_key_length = strlen(reinterpret_cast<char *>(input_key));
+  unsigned int LIMIT = getExpansionKeySize(input_key_length);
+
+  // Generate the next LIMIT bytes
+  while (bytes_generated < LIMIT)
   {
     // Read 4 bytes for the core
     for (int i = 0; i < 4; i++)
-      temp[i] = expanded_keys[i + bytes_generated - 4];
+      temp[i] = expanded_key[i + bytes_generated - 4];
 
     // Perform the core once for each 16 byte key
     if (bytes_generated % 16 == 0)
       key_expansion_core(temp, rcon_iteration++);
 
-    // XOR temp with [bytes_generated-16], and store in expanded_keys
+    // XOR temp with [bytes_generated-16], and store in expanded_key
     for (unsigned char a = 0; a < 4; a++)
     {
-      expanded_keys[bytes_generated] = expanded_keys[bytes_generated - 16] ^ temp[a];
+      expanded_key[bytes_generated] = expanded_key[bytes_generated - 16] ^ temp[a];
       bytes_generated++;
     }
   }
 }
 
-/* Function: sub_bytes
- * -------------------
- * Substitutes each 16 state bytes with corresponding byte in Rijndael S-Box.
- *
- * Understanding Cryptography by Christof Paar and Jan Pelzl pg 90
- *     This process introduces confusion to the data, i.e., it assures that
- *     changes in individual state bits propagate quickly across the data path.
- *
- * state: bytes to be substituted
- */
 void sub_bytes(unsigned char *state)
 {
   // Substitute each state value with another byte in the Rijndael S-Box
@@ -87,12 +90,6 @@ void sub_bytes(unsigned char *state)
     state[i] = s_box[state[i]];
 }
 
-/* Function: inv_sub_bytes
- * -----------------------
- * Substitutes each 16 state bytes with corresponding byte in inverse Rijndael S-Box.
- *
- * state: bytes to be substituted
- */
 void inv_sub_bytes(unsigned char *state)
 {
   // Substitute each state value with another byte in the Rijndael S-Box
@@ -100,27 +97,6 @@ void inv_sub_bytes(unsigned char *state)
     state[i] = inv_s_box[state[i]];
 }
 
-/* Function: shift_rows
- * --------------------
- * Shifts each row of a 4x4 matrix to the left by it's row number - 1.
- *
- * Any entries the are shifted outside the matrix bounds is rotated back to the
- * right of the row.
- *
- * Row 1 no shift.
- * Row 2 shift left once.
- * Row 3 shift left twice.
- * Row 4 shift left three times.
- *
- * This function along with mix columns introduce diffusion. Diffusion attempts
- * to disguise properties of the input message. An example of this would be the
- * character "e" is most common in the English language so you would want to
- * design cipher in a way that someone attempting to break the cipher would not
- * be able to use some character frequency analysis to obtain more information.
- *
- * state: 16 byte array representing 4x4 matrix where first 4 entries represent
- *        the first column
- */
 void shift_rows(unsigned char *state)
 {
   unsigned char tmp[16];
@@ -153,21 +129,6 @@ void shift_rows(unsigned char *state)
     state[i] = tmp[i];
 }
 
-/* Function: inv_shift_rows
- * ------------------------
- * Shifts each row of a 4x4 matrix to the right by it's row number - 1.
- *
- * Any entries the are shifted outside the matrix bounds is rotated back to the
- * left of the row.
- *
- * Row 1 no shift.
- * Row 2 shift right once.
- * Row 3 shift right twice.
- * Row 4 shift right three times.
- *
- * state: 16 byte array representing 4x4 matrix where first 4 entries represent
- *        the first column
- */
 void inv_shift_rows(unsigned char *state)
 {
   unsigned char tmp[16];
@@ -200,41 +161,8 @@ void inv_shift_rows(unsigned char *state)
     state[i] = tmp[i];
 }
 
-/* Function: mix_columns
- * ---------------------
- * Takes a 16 char byte array and transforms to new 16 byte char array that
- * represents the GF(256) matrix multiplication of a known matrix times the
- * state. The byte array represents a 4x4 matrix where the first 4 entries
- * represents the first column.
- *
- * Known Matrix:
- *     [[2, 3, 1, 1],
- *      [1, 2, 3, 1],
- *      [1, 1, 2, 3],
- *      [3, 1, 1, 2]]
- *
- * This operation essentially performs the following for each row in GF(256)
- * where d_i represents the new column entry of index i and b_i represents the
- * input state column entry of index i.
- *     d_0 = (2*b_0) + (3*b_1) + (1*b_2) + (1*b_3)
- *     d_1 = (1*b_0) + (2*b_1) + (3*b_2) + (1*b_3)
- *     d_2 = (1*b_0) + (1*b_1) + (2*b_2) + (3*b_3)
- *     d_3 = (3*b_0) + (1*b_1) + (1*b_2) + (2*b_3)
- *
- * This function along with shift rows introduce diffusion. Diffusion attempts
- * to disguise properties of the input message. An example of this would be the
- * character "e" is most common in the English language so you would want to
- * design cipher in a way that someone attempting to break the cipher would not
- * be able to use some character frequency analysis to obtain more information.
- *
- * For more details visit https://en.wikipedia.org/wiki/Rijndael_MixColumns
- *
- * state: 16 unsigned char byte array to transform
- */
 void mix_columns(unsigned char *state)
 {
-  // Dot product and byte mod of state
-
   unsigned char tmp[16];
   // Column 1 entries
   tmp[0] = (unsigned char)(mul2[state[0]] ^ mul3[state[1]] ^ state[2] ^ state[3]);
@@ -264,32 +192,6 @@ void mix_columns(unsigned char *state)
     state[i] = tmp[i];
 }
 
-/* Function: inv_mix_columns
- * -------------------------
- * Takes a 16 char byte array and transforms to new 16 byte char array that
- * represents the inverse of the mix_columns function. This essentially takes
- * a known inverse matrix and multiples it against the state. The byte array
- * represents a 4x4 matrix where the first 4 entries represents the first
- * column.
- *
- * Known Inverse Matrix:
- *     [[14, 11, 13,  9],
- *      [ 9, 14, 11, 13],
- *      [13,  9, 14, 11],
- *      [11, 13,  9, 14]]
- *
- * This operation essentially performs the following for each row in GF(256)
- * where d_i represents the new column entry of index i and b_i represents the
- * input state column entry of index i.
- *     d_0 = (14*b_0) + (11*b_1) + (13*b_2) + ( 9*b_3)
- *     d_1 = ( 9*b_0) + (14*b_1) + (11*b_2) + (13*b_3)
- *     d_2 = (13*b_0) + ( 9*b_1) + (14*b_2) + (11*b_3)
- *     d_3 = (11*b_0) + (13*b_1) + ( 9*b_2) + (14*b_3)
- *
- * For more details visit https://en.wikipedia.org/wiki/Rijndael_MixColumns
- *
- * state: 16 unsigned char byte array to transform
- */
 void inv_mix_columns(unsigned char *state)
 {
   unsigned char tmp[16];
@@ -322,66 +224,24 @@ void inv_mix_columns(unsigned char *state)
     state[i] = tmp[i];
 }
 
-/* Function: add_round_key
- * -----------------------
- * Set each index in 16 byte state array to XOR of state[index] and round_key[index]
- *
- * XOR the round key with the current state.
- *
- * Sometimes the round key is referred to as subkey.
- *
- * state: 16 unsigned char byte array to be updated
- * round_key: 16 unsigned char byte array to XOR against
- */
 void add_round_key(unsigned char *state, unsigned char *round_key)
 {
   for (int i = 0; i < 16; i++)
     state[i] ^= round_key[i];
 }
 
-/* Function: aes_encrypt
- * ---------------------
- * Encrypts message using 9 round ECB AES-128 encryption and given expanded key.
- *
- * Encryption Process:
- *     First Round:
- *         --------------------
- *         Add Round Key [First 16 Bytes]
- *         --------------------
- *
- *     Next 9 Rounds:
- *         --------------------------------
- *         Sub Bytes with S-Box
- *         Left Shift Rows
- *         Mix Columns
- *         Add Round Key [16 * (Round + 1)]
- *         --------------------------------
- *
- *     Final Round:
- *         --------------------------------
- *         Sub Bytes with S-Box
- *         Left Shift Rows
- *         Add Round Key [Last 16 Bytes]
- *         --------------------------------
- *
- * Notice that the final round does not call the mix columns function. This is
- * so the encryption and decryption scheme is symetric.
- *
- * message: 16 byte message to encrypt
- * expanded_key: 172 byte expanded key for cipher
- */
-char *aes_encrypt(char *message, unsigned char *expanded_key)
+char *aes_encrypt(char *message, unsigned char *expanded_key, unsigned int key_length)
 {
+  unsigned int ROUND_CNT = getRoundCount(key_length);
+
   unsigned char state[16];
 
-  // Take only the first 16 characters of the message
   for (int i = 0; i < 16; i++)
     state[i] = message[i];
 
-  const unsigned int round_cnt = 9;
   add_round_key(state, expanded_key);
 
-  for (unsigned int i = 0; i < round_cnt; i++)
+  for (unsigned int i = 0; i < ROUND_CNT; i++)
   {
     sub_bytes(state);
     shift_rows(state);
@@ -389,68 +249,27 @@ char *aes_encrypt(char *message, unsigned char *expanded_key)
     add_round_key(state, expanded_key + (16 * (i + 1)));
   }
 
-  // Final round
   sub_bytes(state);
   shift_rows(state);
   add_round_key(state, expanded_key + 160);
 
-  // unsigned cha *enc_msg = (char *)malloc(16);
   char *enc_msg = new char[16];
   memcpy(enc_msg, state, 16);
   return enc_msg;
 }
 
-/* Function: aes_decrypt
- * ---------------------
- * Decrypts ECB AES-128 encrypted message for given expanded_key.
- *
- * Due to the nature of the decryption process being a reverse of the
- * encryption process it's possible to compare each round between encryption
- * and decryption to see if they are the same. In other words inversing the
- * first round should yield the same result as the second to last encryption
- * round which can be useful for dubugging.
- *
- * Note that AES is not based on a Feistel network which means all layers must
- * be inverted. In other words left shift rows becomes right shift rows, mix
- * columns becomes inverse mix columns, sub bytes becomes inverse sub bytes,
- * etc.
- *
- * Decryption Process:
- *     First Round:
- *         --------------------------------
- *         Add Round Key [Last 16 Bytes]
- *         --------------------------------
- *
- *     Next 9 Rounds:
- *         --------------------------------
- *         Right Shift Rows
- *         Sub Bytes with Inverse S-Box
- *         Add Round Key [16 * (9 - Round)]
- *         Inverse Mix Columns
- *         --------------------------------
- *
- *     Final Round:
- *         --------------------------------
- *         Right Shift Rows
- *         Sub Bytes with Inverse S-Box
- *         Add Round Key [0]
- *         --------------------------------
- *
- * message: 16 byte message to encrypt
- * expanded_key: 172 byte expanded key for cipher
- */
-char *aes_decrypt(char *message, unsigned char *expanded_key)
+char *aes_decrypt(char *message, unsigned char *expanded_key, unsigned int key_length)
 {
+  unsigned int ROUND_CNT = getRoundCount(key_length);
+
   unsigned char state[16];
 
-  // Take only the first 16 characters of the message
   for (int i = 0; i < 16; i++)
     state[i] = message[i];
 
-  const int round_cnt = 9;
   add_round_key(state, expanded_key + 160);
 
-  for (int i = round_cnt; i > 0; i--)
+  for (int i = ROUND_CNT; i > 0; i--)
   {
     inv_shift_rows(state);
     inv_sub_bytes(state);
@@ -466,15 +285,6 @@ char *aes_decrypt(char *message, unsigned char *expanded_key)
   return dec_msg;
 }
 
-/* Function: right_pad_str
- * -----------------------
- * right pads remainder msg mod pad_len with 0
- *
- * str: string to pad
- * pad_len: divisable length top pad to
- *
- * returns: pointer to padded message
- */
 char *right_pad_str(const char *str, unsigned int pad_len)
 {
   const unsigned int str_len = strlen(str);
@@ -482,7 +292,6 @@ char *right_pad_str(const char *str, unsigned int pad_len)
   if (padded_str_len % pad_len != 0)
     padded_str_len = (padded_str_len / pad_len + 1) * pad_len;
 
-  // unsigned char *padded_str = (unsigned char *)malloc(padded_str_len);
   char *padded_str = new char[padded_str_len];
   for (unsigned int i = 0; i < padded_str_len; i++)
   {
@@ -496,6 +305,8 @@ char *right_pad_str(const char *str, unsigned int pad_len)
 
 std::string AES_Encrypt(const std::string &message, const std::string &key)
 {
+  unsigned int EXPANDED_KEY_SIZE = getExpansionKeySize(key.length());
+
   const char *str = message.c_str();
 
   char *padded_msg = right_pad_str(str, 16);
@@ -503,8 +314,7 @@ std::string AES_Encrypt(const std::string &message, const std::string &key)
   if (padded_msg_len % 16)
     padded_msg_len = (padded_msg_len / 16 + 1) * 16;
 
-  // expand key to 176 bytes
-  unsigned char expanded_key[176];
+  unsigned char expanded_key[EXPANDED_KEY_SIZE];
 
   unsigned char *input_key = new unsigned char[key.length() + 1];
   std::copy(key.begin(), key.end(), input_key);
@@ -512,16 +322,12 @@ std::string AES_Encrypt(const std::string &message, const std::string &key)
 
   key_expansion(input_key, expanded_key);
 
-  // Iterate padded message in blocks of 16 bytes and encrypt
-
   char *enc_msg;
   std::string encryptedMessage;
 
   for (unsigned int i = 0; i < padded_msg_len; i += 16)
   {
-    // encrypt message
-    enc_msg = aes_encrypt(padded_msg + i, expanded_key);
-    // print_hex(enc_msg);
+    enc_msg = aes_encrypt(padded_msg + i, expanded_key, key.length());
 
     for (int i = 0; i < 16; i++)
     {
@@ -538,6 +344,8 @@ std::string AES_Encrypt(const std::string &message, const std::string &key)
 
 std::string AES_Decrypt(const std::string &encryptedMessage, const std::string &key)
 {
+  unsigned int EXPANDED_KEY_SIZE = getExpansionKeySize(key.length());
+
   std::string msg = convert_ASCII(encryptedMessage);
 
   const char *message = msg.c_str();
@@ -547,8 +355,7 @@ std::string AES_Decrypt(const std::string &encryptedMessage, const std::string &
   if (padded_msg_len % 16)
     padded_msg_len = (padded_msg_len / 16 + 1) * 16;
 
-  // expand key to 176 bytes
-  unsigned char expanded_key[176];
+  unsigned char expanded_key[EXPANDED_KEY_SIZE];
 
   unsigned char *input_key = new unsigned char[key.length() + 1];
   std::copy(key.begin(), key.end(), input_key);
@@ -556,15 +363,13 @@ std::string AES_Decrypt(const std::string &encryptedMessage, const std::string &
 
   key_expansion(input_key, expanded_key);
 
-  // Iterate padded message in blocks of 16 bytes and decrypt
   char *dec_msg;
 
   std::string decryptedMessage = "";
   for (unsigned int i = 0; i < padded_msg_len; i += 16)
   {
-    // decrypt message
-    dec_msg = aes_decrypt(padded_msg + i, expanded_key);
-    decryptedMessage += reinterpret_cast<char *>(dec_msg);
+    dec_msg = aes_decrypt(padded_msg + i, expanded_key, key.length());
+    decryptedMessage += dec_msg;
     delete[] dec_msg;
   }
 
