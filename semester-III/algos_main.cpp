@@ -9,6 +9,7 @@
 
 int main()
 {
+    // std::string message = "An oak tree produces about 10 million acorns during its lifetime.";
     std::string message = "";
 
     std::cout << "Enter your message: ";
