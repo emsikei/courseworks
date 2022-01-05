@@ -2,14 +2,20 @@
 #include <vector>
 #include <utility>
 
-#include "headers/aes/aes.h"
-#include "headers/rsa/rsa.h"
+#include "src/aes/aes.h"
+#include "src/rsa/rsa.h"
 
-#include "headers/hybrid/hybrid.h"
+#include "src/hybrid/hybrid.h"
 
 int main()
 {
-    std::string message = "Visual Studio 2019";
+    // std::string message = "Visual Studio 2019";
+
+    std::string message = "";
+
+    std::cout << "Enter your message to sent: ";
+    std::getline(std::cin, message);
+    std::cout << std::endl;
 
     RSAKeys keys = generateKeys();
 

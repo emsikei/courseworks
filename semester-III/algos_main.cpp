@@ -1,8 +1,8 @@
 #include <iostream>
 #include <vector>
 
-#include "headers/aes/aes.h"
-#include "headers/rsa/rsa.h"
+#include "src/aes/aes.h"
+#include "src/rsa/rsa.h"
 
 int main()
 {
