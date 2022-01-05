@@ -7,45 +7,165 @@
 #include "utilities.h"
 #include "constants.h"
 
-unsigned int getRoundCount(unsigned int key_length)
+/* ================================= Signatures ================================= */
+
+std::string AES_Encrypt(const std::string &message, const std::string &key);
+std::string AES_Decrypt(const std::string &encryptedMessage, const std::string &key);
+char *aes_encrypt(char *message, unsigned char *expanded_key, unsigned int key_length);
+char *aes_decrypt(char *message, unsigned char *expanded_key, unsigned int key_length);
+
+void keyExpansion(unsigned char *input_key, unsigned char *expanded_key);
+void addRoundKey(unsigned char *state, unsigned char *round_key);
+void subBytes(unsigned char *state);
+void shiftRows(unsigned char *state);
+void mixColumns(unsigned char *state);
+void invSubBytes(unsigned char *state);
+void invShiftRows(unsigned char *state);
+void invMixColumns(unsigned char *state);
+
+void keyExpansionCore(unsigned char *in, unsigned char i);
+char *right_pad_str(const char *str, unsigned int pad_len);
+
+/* ================================= Implementation ================================= */
+
+std::string AES_Encrypt(const std::string &message, const std::string &key)
 {
-  switch (key_length)
+  const char *str = message.c_str();
+
+  char *padded_msg = right_pad_str(str, 16);
+  unsigned int padded_msg_len = strlen(str);
+  if (padded_msg_len % 16)
+    padded_msg_len = (padded_msg_len / 16 + 1) * 16;
+
+  unsigned char expanded_key[176];
+
+  unsigned char *input_key = new unsigned char[key.length() + 1];
+  std::copy(key.begin(), key.end(), input_key);
+  input_key[key.length()] = 0;
+
+  keyExpansion(input_key, expanded_key);
+
+  char *enc_msg;
+  std::string encryptedMessage;
+
+  for (unsigned int i = 0; i < padded_msg_len; i += 16)
   {
-  case 16:
-    return ROUNDS_128;
-  case 24:
-    return ROUNDS_196;
-  case 32:
-    return ROUNDS_256;
+    enc_msg = aes_encrypt(padded_msg + i, expanded_key, key.length());
+
+    for (int i = 0; i < 16; i++)
+    {
+      encryptedMessage += uchar2hex((unsigned char)*(enc_msg + i));
+    }
+
+    delete[] enc_msg;
   }
-  return 0;
+
+  delete[] padded_msg;
+
+  return encryptedMessage;
 }
 
-unsigned int getExpansionKeySize(unsigned int key_length)
+std::string AES_Decrypt(const std::string &encryptedMessage, const std::string &key)
 {
-  switch (key_length)
+  std::string msg = convert_ASCII(encryptedMessage);
+
+  const char *message = msg.c_str();
+
+  char *padded_msg = right_pad_str(message, 16);
+
+  unsigned int padded_msg_len = strlen(message);
+  if (padded_msg_len % 16)
+    padded_msg_len = (padded_msg_len / 16 + 1) * 16;
+
+  unsigned char expanded_key[176];
+
+  unsigned char *input_key = new unsigned char[key.length() + 1];
+  std::copy(key.begin(), key.end(), input_key);
+  input_key[key.length()] = 0;
+
+  keyExpansion(input_key, expanded_key);
+
+  char *dec_msg;
+
+  std::string decryptedMessage = "";
+
+  for (unsigned int i = 0; i < padded_msg_len; i += 16)
   {
-  case 16:
-    return EXPANSION_KEY_SIZE_128;
-  case 24:
-    return EXPANSION_KEY_SIZE_196;
-  case 32:
-    return EXPANSION_KEY_SIZE_256;
+    dec_msg = aes_decrypt(padded_msg + i, expanded_key, key.length());
+    decryptedMessage += dec_msg;
+    delete[] dec_msg;
   }
-  return 0;
+  std::cout << std::endl;
+
+  return decryptedMessage;
+}
+
+char *aes_encrypt(char *message, unsigned char *expanded_key, unsigned int key_length)
+{
+  const unsigned int ROUND_CNT = 9;
+
+  unsigned char state[16];
+
+  for (int i = 0; i < 16; i++)
+    state[i] = message[i];
+
+  addRoundKey(state, expanded_key);
+
+  for (unsigned int i = 0; i < ROUND_CNT; i++)
+  {
+    subBytes(state);
+    shiftRows(state);
+    mixColumns(state);
+    addRoundKey(state, expanded_key + (16 * (i + 1)));
+  }
+
+  subBytes(state);
+  shiftRows(state);
+  addRoundKey(state, expanded_key + 160);
+
+  char *enc_msg = new char[16];
+  memcpy(enc_msg, state, 16);
+  return enc_msg;
+}
+
+char *aes_decrypt(char *message, unsigned char *expanded_key, unsigned int key_length)
+{
+  const unsigned int ROUND_CNT = 9;
+
+  unsigned char state[16];
+
+  for (int i = 0; i < 16; i++)
+    state[i] = message[i];
+
+  addRoundKey(state, expanded_key + 160);
+
+  for (int i = ROUND_CNT; i > 0; i--)
+  {
+    invShiftRows(state);
+    invSubBytes(state);
+    addRoundKey(state, expanded_key + (16 * i));
+    invMixColumns(state);
+  }
+  invShiftRows(state);
+  invSubBytes(state);
+  addRoundKey(state, expanded_key);
+
+  char *dec_msg = new char[16];
+  memcpy(dec_msg, state, 16);
+  return dec_msg;
 }
 
 void keyExpansionCore(unsigned char *in, unsigned char i)
 {
-  // Циклический сдвиг четырех в байтов влево на 1 и 
-  // замена каждого байта в соотсвествии с 
+  // Циклический сдвиг четырех в байтов влево на 1 и
+  // замена каждого байта в соотсвествии с
   // таблицей подстановок s_box
   in[0] = s_box[in[0]];
   in[1] = s_box[in[1]];
   in[2] = s_box[in[2]];
   in[3] = s_box[in[3]];
 
-  // RCon XOR
+  // RCon XOR Rcon[i] = (RC[i], 0X00, 0X00, 0X00)
   in[0] ^= rcon[i];
 }
 
@@ -60,14 +180,9 @@ void keyExpansion(unsigned char *input_key, unsigned char *expanded_key)
   int rcon_iteration = 1;
   unsigned char temp[4];
 
-  // Определение битности AES (128, 192 или 256)
-  unsigned int input_key_length = strlen(reinterpret_cast<char *>(input_key));
-  unsigned int LIMIT = getExpansionKeySize(input_key_length);
-
-  // Генерация следующих LIMIT(количество) байтов
-  while (bytes_generated < LIMIT)
+  while (bytes_generated < 176)
   {
-    // Считывание первых четырех байтов 
+    // Считывание первых четырех байтов
     for (int i = 0; i < 4; i++)
       temp[i] = expanded_key[i + bytes_generated - 4];
 
@@ -75,7 +190,7 @@ void keyExpansion(unsigned char *input_key, unsigned char *expanded_key)
     if (bytes_generated % 16 == 0)
       keyExpansionCore(temp, rcon_iteration++);
 
-    // XOR temp с [bytes_generated-16], и сохранение в expanded_key 
+    // XOR temp с [bytes_generated-16], и сохранение в expanded_key
     for (unsigned char a = 0; a < 4; a++)
     {
       expanded_key[bytes_generated] = expanded_key[bytes_generated - 16] ^ temp[a];
@@ -215,63 +330,6 @@ void addRoundKey(unsigned char *state, unsigned char *round_key)
     state[i] ^= round_key[i];
 }
 
-char *aes_encrypt(char *message, unsigned char *expanded_key, unsigned int key_length)
-{
-  unsigned int ROUND_CNT = getRoundCount(key_length);
-
-  unsigned char state[16];
-
-  for (int i = 0; i < 16; i++)
-    state[i] = message[i];
-
-  addRoundKey(state, expanded_key);
-
-  for (unsigned int i = 0; i < ROUND_CNT; i++)
-  {
-    subBytes(state);
-    shiftRows(state);
-    mixColumns(state);
-    addRoundKey(state, expanded_key + (16 * (i + 1)));
-  }
-
-  int numOfBytesToAdd = (ROUND_CNT + 1) * 16;
-
-  subBytes(state);
-  shiftRows(state);
-  addRoundKey(state, expanded_key + numOfBytesToAdd);
-
-  char *enc_msg = new char[16];
-  memcpy(enc_msg, state, 16);
-  return enc_msg;
-}
-
-char *aes_decrypt(char *message, unsigned char *expanded_key, unsigned int key_length)
-{
-  unsigned int ROUND_CNT = getRoundCount(key_length);
-
-  unsigned char state[16];
-
-  for (int i = 0; i < 16; i++)
-    state[i] = message[i];
-
-  addRoundKey(state, expanded_key + 160);
-
-  for (int i = ROUND_CNT; i > 0; i--)
-  {
-    invShiftRows(state);
-    invSubBytes(state);
-    addRoundKey(state, expanded_key + (16 * i));
-    invMixColumns(state);
-  }
-  invShiftRows(state);
-  invSubBytes(state);
-  addRoundKey(state, expanded_key);
-
-  char *dec_msg = new char[16];
-  memcpy(dec_msg, state, 16);
-  return dec_msg;
-}
-
 char *right_pad_str(const char *str, unsigned int pad_len)
 {
   const unsigned int str_len = strlen(str);
@@ -290,77 +348,5 @@ char *right_pad_str(const char *str, unsigned int pad_len)
   return padded_str;
 }
 
-std::string AES_Encrypt(const std::string &message, const std::string &key)
-{
-  unsigned int EXPANDED_KEY_SIZE = getExpansionKeySize(key.length());
-
-  const char *str = message.c_str();
-
-  char *padded_msg = right_pad_str(str, 16);
-  unsigned int padded_msg_len = strlen(str);
-  if (padded_msg_len % 16)
-    padded_msg_len = (padded_msg_len / 16 + 1) * 16;
-
-  unsigned char expanded_key[EXPANDED_KEY_SIZE];
-
-  unsigned char *input_key = new unsigned char[key.length() + 1];
-  std::copy(key.begin(), key.end(), input_key);
-  input_key[key.length()] = 0;
-
-  keyExpansion(input_key, expanded_key);
-
-  char *enc_msg;
-  std::string encryptedMessage;
-
-  for (unsigned int i = 0; i < padded_msg_len; i += 16)
-  {
-    enc_msg = aes_encrypt(padded_msg + i, expanded_key, key.length());
-
-    for (int i = 0; i < 16; i++)
-    {
-      encryptedMessage += uchar2hex((unsigned char)*(enc_msg + i));
-    }
-
-    delete[] enc_msg;
-  }
-
-  delete[] padded_msg;
-
-  return encryptedMessage;
-}
-
-std::string AES_Decrypt(const std::string &encryptedMessage, const std::string &key)
-{
-  unsigned int EXPANDED_KEY_SIZE = getExpansionKeySize(key.length());
-
-  std::string msg = convert_ASCII(encryptedMessage);
-
-  const char *message = msg.c_str();
-
-  char *padded_msg = right_pad_str(message, 16);
-  unsigned int padded_msg_len = strlen(message);
-  if (padded_msg_len % 16)
-    padded_msg_len = (padded_msg_len / 16 + 1) * 16;
-
-  unsigned char expanded_key[EXPANDED_KEY_SIZE];
-
-  unsigned char *input_key = new unsigned char[key.length() + 1];
-  std::copy(key.begin(), key.end(), input_key);
-  input_key[key.length()] = 0;
-
-  keyExpansion(input_key, expanded_key);
-
-  char *dec_msg;
-
-  std::string decryptedMessage = "";
-  for (unsigned int i = 0; i < padded_msg_len; i += 16)
-  {
-    dec_msg = aes_decrypt(padded_msg + i, expanded_key, key.length());
-    decryptedMessage += dec_msg;
-    delete[] dec_msg;
-  }
-
-  return decryptedMessage;
-}
 
 #endif

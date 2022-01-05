@@ -1,15 +1,13 @@
 #include <iostream>
 #include <vector>
-#include <utility>
 
 #include "headers/aes/aes.h"
 #include "headers/rsa/rsa.h"
 
-#include "headers/overloads.h"
-
 int main()
 {
     // std::string message = "An oak tree produces about 10 million acorns during its lifetime.";
+
     std::string message = "";
 
     std::cout << "Enter your message: ";
@@ -23,7 +21,7 @@ int main()
     std::cout << "Message: " << message << "\n"
               << std::endl;
     std::cout << "=========================" << std::endl;
-    std::cout << "        AES " << symmetricKey.length() * 8 << "-bit      " << std::endl;
+    std::cout << "        AES 128-bit      " << std::endl;
     std::cout << "=========================\n"
               << std::endl;
     std::cout << "Symmetric key: " << symmetricKey << "\n"
@@ -36,17 +34,16 @@ int main()
     std::cout << "\n\nMessage: " << message << "\n"
               << std::endl;
     std::cout << "=========================" << std::endl;
-    std::cout << "       RSA 2048-bit      " << std::endl;
+    std::cout << "           RSA           " << std::endl;
     std::cout << "=========================\n"
               << std::endl;
 
-    std::pair<unsigned long long, unsigned long long> publicKey;
-    std::pair<unsigned long long, unsigned long long> privateKey;
-    generateKey(publicKey, privateKey);
+    RSAKeys keys = generateKeys();
 
-    std::vector<std::string> encrypted_RSA = RSA_Encrypt(message, publicKey);
-    std::string decrypted_RSA = RSA_Decrypt(encrypted_RSA, privateKey);
+    std::string encrypted_RSA = RSA_Encrypt(message, keys.publicKey);
+    std::string decrypted_RSA = RSA_Decrypt(encrypted_RSA, keys.privateKey);
 
+    printKeys(keys.publicKey.E, keys.publicKey.N, keys.privateKey.D);
     std::cout << "Cipher text: " << encrypted_RSA << "\n"
               << std::endl;
     std::cout << "Decrypted message: " << decrypted_RSA << "\n"

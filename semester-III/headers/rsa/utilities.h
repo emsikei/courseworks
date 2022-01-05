@@ -3,9 +3,36 @@
 
 #include <iostream>
 #include <vector>
-#include "utilities.h"
 
-unsigned long long mod(unsigned long long a, unsigned long long b, unsigned long long c)
+typedef unsigned long long int t_ullong;
+typedef unsigned char uchar;
+
+static const std::string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+/* ================================= Signatures ================================= */
+
+t_ullong mod(t_ullong a, t_ullong b, t_ullong c);
+std::string formMessage(std::vector<std::string> &M);
+bool isPrime(int n);
+int getPrime(int N);
+int gcd(int a, int b);
+int calculate_E(t_ullong Phi_N);
+int calculate_D(t_ullong Phi_N, t_ullong E);
+
+void getMessage(std::string &message, std::vector<t_ullong> &M);
+void convertToNumbers(t_ullong D, t_ullong N, std::vector<std::string> &M);
+
+void printKeys(t_ullong E, t_ullong N, t_ullong D);
+void print_hex(char *msg, int len);
+
+std::string base64_encode(const std::string &in);
+std::string base64_decode(const std::string &in);
+
+std::vector<std::string> tokenize(const std::string &str);
+
+/* ================================= Implementation ================================= */
+
+t_ullong mod(t_ullong a, t_ullong b, t_ullong c)
 {
     if (b == 0)
     {
@@ -13,7 +40,7 @@ unsigned long long mod(unsigned long long a, unsigned long long b, unsigned long
     }
     else if (b % 2 == 0)
     {
-        unsigned long long d = mod(a, b / 2, c);
+        t_ullong d = mod(a, b / 2, c);
         return (d * d) % c;
     }
     else
@@ -22,12 +49,10 @@ unsigned long long mod(unsigned long long a, unsigned long long b, unsigned long
     }
 }
 
-void getMessage(std::string &message, std::vector<unsigned long long> &M)
+void getMessage(std::string &message, std::vector<t_ullong> &M)
 {
-    char *arr = &message[0];
-
     std::string two_numbers = "";
-    for (int i = 0; i < message.length(); ++i)
+    for (size_t i = 0; i < message.length(); ++i)
     {
         if (i % 2 == 0 && i != 0)
         {
@@ -49,16 +74,16 @@ void getMessage(std::string &message, std::vector<unsigned long long> &M)
     two_numbers.clear();
 }
 
-void convertToNumbers(unsigned long long &D, unsigned long long &N, std::vector<std::string> &M)
+void convertToNumbers(t_ullong D, t_ullong N, std::vector<std::string> &M)
 {
-    std::vector<unsigned long long> C;
-    for (int i = 0; i < M.size(); ++i)
+    std::vector<t_ullong> C;
+    for (size_t i = 0; i < M.size() - 1; ++i)
     {
         C.push_back(std::stoll(M[i]));
     }
 
     M.clear();
-    for (int i = 0; i < C.size(); ++i)
+    for (size_t i = 0; i < C.size(); ++i)
     {
         M.push_back(std::to_string(mod(C[i], D, N)));
     }
@@ -66,33 +91,33 @@ void convertToNumbers(unsigned long long &D, unsigned long long &N, std::vector<
 
 std::string formMessage(std::vector<std::string> &M)
 {
-    std::string Mssg;
-    for (int i = 0; i < M.size(); ++i)
+    std::string message;
+    for (size_t i = 0; i < M.size(); ++i)
     {
         if (M[i].length() == 4)
         {
             std::string number = "";
             number += M[i][0];
             number += M[i][1];
-            Mssg += (char)(std::stod(number) + 31);
+            message += (char)(std::stod(number) + 31);
             number = "";
             number += M[i][2];
             number += M[i][3];
-            Mssg += (char)(std::stod(number) + 31);
+            message += (char)(std::stod(number) + 31);
         }
         else
         {
             std::string number = "";
             number += M[i][0];
-            Mssg += (char)(std::stod(number) + 31);
+            message += (char)(std::stod(number) + 31);
             number = "";
             number += M[i][1];
             number += M[i][2];
-            Mssg += (char)(std::stod(number) + 31);
+            message += (char)(std::stod(number) + 31);
         }
     }
 
-    return Mssg;
+    return message;
 }
 
 bool isPrime(int n)
@@ -145,9 +170,9 @@ int gcd(int a, int b)
     return gcd(b, a % b);
 }
 
-int calculate_E(unsigned long long Phi_N)
+int calculate_E(t_ullong Phi_N)
 {
-    int i = 2;
+    size_t i = 2;
     while (gcd(i, Phi_N) != 1)
     {
         i++;
@@ -162,7 +187,7 @@ int calculate_E(unsigned long long Phi_N)
     }
 }
 
-int calculate_D(unsigned long long Phi_N, unsigned long long E)
+int calculate_D(t_ullong Phi_N, t_ullong E)
 {
     int k = 0;
     while (((k * Phi_N) + 1) % E != 0)
@@ -180,6 +205,78 @@ void print_hex(char *msg, int len)
         printf("%02X ", (unsigned char)*(msg + i));
     }
     std::cout << std::endl;
+}
+
+void printKeys(t_ullong E, t_ullong N, t_ullong D)
+{
+    std::cout << "-Public key:"
+              << "\n      • N = " << N << "\n      • E = " << E << "\n-Private key:\n      • D = " << D << "\n      • N = " << N << "\n"
+              << std::endl;
+}
+
+std::string base64_encode(const std::string &in)
+{
+    std::string out;
+
+    int val = 0, valb = -6;
+    for (uchar c : in)
+    {
+        val = (val << 8) + c;
+        valb += 8;
+        while (valb >= 0)
+        {
+            out.push_back(alphabet[(val >> valb) & 0x3F]);
+            valb -= 6;
+        }
+    }
+    if (valb > -6)
+        out.push_back(alphabet[((val << 8) >> (valb + 8)) & 0x3F]);
+    while (out.size() % 4)
+        out.push_back('=');
+    return out;
+}
+
+std::string base64_decode(const std::string &in)
+{
+    std::string out;
+
+    std::vector<int> T(256, -1);
+    for (int i = 0; i < 64; i++)
+        T[alphabet[i]] = i;
+
+    int val = 0, valb = -8;
+    for (uchar c : in)
+    {
+        if (T[c] == -1)
+            break;
+        val = (val << 6) + T[c];
+        valb += 6;
+        if (valb >= 0)
+        {
+            out.push_back(char((val >> valb) & 0xFF));
+            valb -= 8;
+        }
+    }
+    return out;
+}
+
+std::vector<std::string> tokenize(const std::string &str)
+{
+    std::vector<std::string> tokens;
+    std::string temp = "";
+    char delim = ' ';
+    for (size_t i = 0; i < str.length(); i++)
+    {
+        if (str[i] == delim)
+        {
+            tokens.push_back(temp);
+            temp = "";
+        }
+        else
+            temp += str[i];
+    }
+    tokens.push_back(temp);
+    return tokens;
 }
 
 #endif

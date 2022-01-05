@@ -3,37 +3,68 @@
 
 #include <iostream>
 #include <vector>
-#include <utility>
 #include "constants.h"
 #include "utilities.h"
 
-std::vector<std::string> RSA_Encrypt(std::string &message, const std::pair<unsigned long long, unsigned long long> &publicKey)
+/* ================================= Signatures ================================= */
+
+struct PublicKey
 {
-    std::vector<std::string> dataToReturn;
-    std::vector<unsigned long long> M;
+    t_ullong N;
+    t_ullong E;
+};
+
+struct PrivateKey
+{
+    t_ullong D;
+    t_ullong N;
+};
+
+struct RSAKeys
+{
+    PublicKey publicKey;
+    PrivateKey privateKey;
+
+    RSAKeys(PublicKey publicKey, PrivateKey privateKey)
+    {
+        this->publicKey = publicKey;
+        this->privateKey = privateKey;
+    };
+};
+
+std::string RSA_Encrypt(std::string &message, const PublicKey &publicKey);
+std::string RSA_Decrypt(const std::string &encryptedMessage, const PrivateKey &privateKey);
+RSAKeys generateKeys();
+
+/* ================================= Implementation ================================= */
+
+std::string RSA_Encrypt(std::string &message, const PublicKey &publicKey)
+{
+    std::string encryptedMessage;
+    std::vector<t_ullong> M;
     getMessage(message, M);
 
-    for (int i = 0; i < M.size(); ++i)
+    for (size_t i = 0; i < M.size(); ++i)
     {
-        unsigned long long data_to_write = mod(M[i], publicKey.second, publicKey.first);
-        dataToReturn.push_back(std::to_string(data_to_write));
+        t_ullong data_to_write = mod(M[i], publicKey.E, publicKey.N);
+        encryptedMessage += std::to_string(data_to_write) + " ";
     }
 
-    return dataToReturn;
+    return base64_encode(encryptedMessage);
 }
 
-std::string RSA_Decrypt(const std::vector<std::string> &encryptedMessage,
-                        const std::pair<unsigned long long, unsigned long long> &privateKey)
+std::string RSA_Decrypt(const std::string &encryptedMessage, const PrivateKey &privateKey)
 {
-    std::vector<std::string> decryptedMessage = encryptedMessage;
-    unsigned long long D = privateKey.first;
-    unsigned long long N = privateKey.second;
-    convertToNumbers(D, N, decryptedMessage);
+    std::string decoded = base64_decode(encryptedMessage);
+
+    std::vector<std::string> decryptedMessage = tokenize(decoded);
+
+    convertToNumbers(privateKey.D, privateKey.N, decryptedMessage);
 
     return formMessage(decryptedMessage);
 }
 
-void generateKey(std::pair<unsigned long long, unsigned long long> &publicKey, std::pair<unsigned long long, unsigned long long> &privateKey)
+RSAKeys generateKeys()
 {
     srand((int)time(0));
     unsigned long randNumber1 = RANGE_MIN + (rand() % (RANGE_MAX - RANGE_MIN + 1));
@@ -41,18 +72,20 @@ void generateKey(std::pair<unsigned long long, unsigned long long> &publicKey, s
 
     unsigned long P = getPrime(randNumber1);
     unsigned long Q = getPrime(randNumber2);
-    unsigned long long N = P * Q;
-    unsigned long long Phi_N = (P - 1) * (Q - 1);
-    unsigned long long E = calculate_E(Phi_N);
-    unsigned long long D = calculate_D(Phi_N, E);
+    t_ullong N = P * Q;
+    t_ullong Phi_N = (P - 1) * (Q - 1);
+    t_ullong E = calculate_E(Phi_N);
+    t_ullong D = calculate_D(Phi_N, E);
 
-    publicKey.first = N;
-    publicKey.second = E;
+    PublicKey publicKey;
+    publicKey.N = N;
+    publicKey.E = E;
 
-    privateKey.first = D;
-    privateKey.second = N;
+    PrivateKey privateKey;
+    privateKey.D = D;
+    privateKey.N = N;
 
-    std::cout << "-Public key:\n      • P = " << P << "\n      • Q = " << Q << "\n      • Φ(N) = " << Phi_N << "\n      • D = " << D << "\n-Private key:\n      • N = " << N << "\n      • E = " << E << "\n" << std::endl;
+    return RSAKeys(publicKey, privateKey);
 }
 
 #endif

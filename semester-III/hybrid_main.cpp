@@ -7,22 +7,18 @@
 
 #include "headers/hybrid/hybrid.h"
 
-#include "headers/overloads.h"
-
 int main()
 {
     std::string message = "Visual Studio 2019";
 
-    std::pair<unsigned long long, unsigned long long> publicKey;
-    std::pair<unsigned long long, unsigned long long> privateKey;
-    generateKey(publicKey, privateKey);
+    RSAKeys keys = generateKeys();
 
-    std::pair<std::string, std::vector<std::string>> encryptedValues = send(message, publicKey);
+    std::pair<std::string, std::string> encryptedValues = send(message, keys.publicKey);
 
     std::string encryptedMessage = encryptedValues.first;
-    std::vector<std::string> encryptedKey = encryptedValues.second;
+    std::string encryptedKey = encryptedValues.second;
 
-    std::string decryptedMessage = recieve(encryptedMessage, encryptedKey, privateKey);
+    std::string decryptedMessage = recieve(encryptedMessage, encryptedKey, keys.privateKey);
 
     std::cout << "Message to send: " << message << "\n"
               << std::endl;
@@ -34,6 +30,4 @@ int main()
 
     std::cout << "Recieved message: " << decryptedMessage << "\n"
               << std::endl;
-
-
 }
