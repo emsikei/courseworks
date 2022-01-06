@@ -43,7 +43,6 @@ int main()
     std::string encrypted_RSA = RSA_Encrypt(message, keys.publicKey);
     std::string decrypted_RSA = RSA_Decrypt(encrypted_RSA, keys.privateKey);
 
-    printKeys(keys.publicKey.E, keys.publicKey.N, keys.privateKey.D);
     std::cout << "Cipher text: " << encrypted_RSA << "\n"
               << std::endl;
     std::cout << "Decrypted message: " << decrypted_RSA << "\n"

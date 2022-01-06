@@ -85,7 +85,9 @@ RSAKeys generateKeys()
     privateKey.D = D;
     privateKey.N = N;
 
-    return RSAKeys(publicKey, privateKey);
+    printKeys(E, N, D, P, Q, Phi_N);
+
+        return RSAKeys(publicKey, privateKey);
 }
 
 #endif

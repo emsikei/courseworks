@@ -22,7 +22,7 @@ int calculate_D(t_ullong Phi_N, t_ullong E);
 void getMessage(std::string &message, std::vector<t_ullong> &M);
 void convertToNumbers(t_ullong D, t_ullong N, std::vector<std::string> &M);
 
-void printKeys(t_ullong E, t_ullong N, t_ullong D);
+void printKeys(t_ullong E, t_ullong N, t_ullong D, t_ullong P, t_ullong Q, t_ullong phi);
 void print_hex(char *msg, int len);
 
 std::string base64_encode(const std::string &in);
@@ -207,11 +207,9 @@ void print_hex(char *msg, int len)
     std::cout << std::endl;
 }
 
-void printKeys(t_ullong E, t_ullong N, t_ullong D)
+void printKeys(t_ullong E, t_ullong N, t_ullong D, t_ullong P, t_ullong Q, t_ullong phi)
 {
-    std::cout << "-Public key:"
-              << "\n      • N = " << N << "\n      • E = " << E << "\n-Private key:\n      • D = " << D << "\n      • N = " << N << "\n"
-              << std::endl;
+    std::cout << "-Public key:\n      •P = " << P << "\n      •Q = " << Q << "\n      •Φ(N) = " << phi << "\n      •D = " << D << "\n   -Private key:\n      •N = " << N << "\n      •E = " << E << std::endl;
 }
 
 std::string base64_encode(const std::string &in)
