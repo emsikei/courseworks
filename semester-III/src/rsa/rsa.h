@@ -50,14 +50,12 @@ std::string RSA_Encrypt(std::string &message, const PublicKey &publicKey)
         encryptedMessage += std::to_string(data_to_write) + " ";
     }
 
-    return base64_encode(encryptedMessage);
+    return encryptedMessage;
 }
 
 std::string RSA_Decrypt(const std::string &encryptedMessage, const PrivateKey &privateKey)
 {
-    std::string decoded = base64_decode(encryptedMessage);
-
-    std::vector<std::string> decryptedMessage = tokenize(decoded);
+    std::vector<std::string> decryptedMessage = tokenize(encryptedMessage);
 
     convertToNumbers(privateKey.D, privateKey.N, decryptedMessage);
 
