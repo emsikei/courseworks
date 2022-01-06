@@ -11,8 +11,8 @@
 
 std::string AES_Encrypt(const std::string &message, const std::string &key);
 std::string AES_Decrypt(const std::string &encryptedMessage, const std::string &key);
-char *aes_encrypt(char *message, unsigned char *expanded_key, unsigned int key_length);
-char *aes_decrypt(char *message, unsigned char *expanded_key, unsigned int key_length);
+char *aes_encrypt(char *message, unsigned char *expanded_key);
+char *aes_decrypt(std::string message, unsigned char *expanded_key);
 
 void keyExpansion(unsigned char *input_key, unsigned char *expanded_key);
 void addRoundKey(unsigned char *state, unsigned char *round_key);
@@ -50,7 +50,7 @@ std::string AES_Encrypt(const std::string &message, const std::string &key)
 
   for (unsigned int i = 0; i < padded_msg_len; i += 16)
   {
-    enc_msg = aes_encrypt(padded_msg + i, expanded_key, key.length());
+    enc_msg = aes_encrypt(padded_msg + i, expanded_key);
 
     for (int i = 0; i < 16; i++)
     {
@@ -69,14 +69,6 @@ std::string AES_Decrypt(const std::string &encryptedMessage, const std::string &
 {
   std::string msg = convert_ASCII(encryptedMessage);
 
-  const char *message = msg.c_str();
-
-  char *padded_msg = right_pad_str(message, 16);
-
-  unsigned int padded_msg_len = strlen(message);
-  if (padded_msg_len % 16)
-    padded_msg_len = (padded_msg_len / 16 + 1) * 16;
-
   unsigned char expanded_key[176];
 
   unsigned char *input_key = new unsigned char[key.length() + 1];
@@ -89,10 +81,12 @@ std::string AES_Decrypt(const std::string &encryptedMessage, const std::string &
 
   std::string decryptedMessage = "";
 
-  for (unsigned int i = 0; i < padded_msg_len; i += 16)
+  for (unsigned int i = 0; i < msg.length(); i += 16)
   {
-    dec_msg = aes_decrypt(padded_msg + i, expanded_key, key.length());
-    decryptedMessage += dec_msg;
+    std::string tmp = msg;
+    tmp.erase(0, i);
+    dec_msg = aes_decrypt(tmp, expanded_key);
+    decryptedMessage += reinterpret_cast<char *>(dec_msg);;
     delete[] dec_msg;
   }
   std::cout << std::endl;
@@ -100,7 +94,7 @@ std::string AES_Decrypt(const std::string &encryptedMessage, const std::string &
   return decryptedMessage;
 }
 
-char *aes_encrypt(char *message, unsigned char *expanded_key, unsigned int key_length)
+char *aes_encrypt(char *message, unsigned char *expanded_key)
 {
   const unsigned int ROUND_CNT = 9;
 
@@ -128,7 +122,7 @@ char *aes_encrypt(char *message, unsigned char *expanded_key, unsigned int key_l
   return enc_msg;
 }
 
-char *aes_decrypt(char *message, unsigned char *expanded_key, unsigned int key_length)
+char *aes_decrypt(std::string message, unsigned char *expanded_key)
 {
   const unsigned int ROUND_CNT = 9;
 
@@ -347,6 +341,5 @@ char *right_pad_str(const char *str, unsigned int pad_len)
   }
   return padded_str;
 }
-
 
 #endif
