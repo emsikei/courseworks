@@ -71,11 +71,11 @@ std::string RSA_Decrypt(const std::string &encryptedMessage, const PrivateKey &p
 RSAKeys generateKeys()
 {
     srand((int)time(0));
-    unsigned long randNumber1 = RANGE_MIN + (rand() % (RANGE_MAX - RANGE_MIN + 1));
-    unsigned long randNumber2 = RANGE_MIN + (rand() % (RANGE_MAX - RANGE_MIN + 1));
+    t_ullong randNumber1 = RANGE_MIN + (rand() % (RANGE_MAX - RANGE_MIN + 1));
+    t_ullong randNumber2 = RANGE_MIN + (rand() % (RANGE_MAX - RANGE_MIN + 1));
 
-    unsigned long P = getPrime(randNumber1);
-    unsigned long Q = getPrime(randNumber2);
+    t_ullong P = getPrime(randNumber1);
+    t_ullong Q = getPrime(randNumber2);
     t_ullong N = P * Q;
     t_ullong Phi_N = (P - 1) * (Q - 1);
     t_ullong E = calculate_E(Phi_N);
