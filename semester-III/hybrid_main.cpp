@@ -9,8 +9,6 @@
 
 int main()
 {
-    // std::string message = "Visual Studio 2019";
-
     std::string message = "";
 
     std::cout << "Enter your message to sent: ";
@@ -24,10 +22,7 @@ int main()
     std::string encryptedMessage = encryptedValues.first;
     std::string encryptedKey = encryptedValues.second;
 
-    std::string decryptedMessage = recieve(encryptedMessage, encryptedKey, keys.privateKey);
-
-    std::cout << "Message to send: " << message << "\n"
-              << std::endl;
+    std::string decryptedMessage = receive(encryptedMessage, encryptedKey, keys.privateKey);
 
     std::cout << "Encrypted message (message sent): " << encryptedMessage << "\n"
               << std::endl;

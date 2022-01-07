@@ -56,11 +56,8 @@ std::string convert_ASCII(std::string hex)
   std::string ascii = "";
   for (size_t i = 0; i < hex.length(); i += 2)
   {
-    //taking two characters from hex std::string
     std::string part = hex.substr(i, 2);
-    //changing it into base 16
     char ch = stoul(part, nullptr, 16);
-    //putting it into the ASCII std::string
     ascii += ch;
   }
   return ascii;

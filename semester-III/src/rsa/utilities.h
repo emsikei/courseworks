@@ -13,11 +13,11 @@ static const std::string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopq
 
 t_ullong mod(t_ullong a, t_ullong b, t_ullong c);
 std::string formMessage(std::vector<std::string> &M);
-bool isPrime(int n);
-int getPrime(int N);
-int gcd(int a, int b);
-int calculate_E(t_ullong Phi_N);
-int calculate_D(t_ullong Phi_N, t_ullong E);
+bool isPrime(t_ullong N);
+t_ullong getPrime(t_ullong N);
+t_ullong gcd(t_ullong a, t_ullong b);
+t_ullong calculate_E(t_ullong Phi_N);
+t_ullong calculate_D(t_ullong Phi_N, t_ullong E);
 
 void getMessage(std::string &message, std::vector<t_ullong> &M);
 void convertToNumbers(t_ullong D, t_ullong N, std::vector<std::string> &M);
@@ -120,18 +120,18 @@ std::string formMessage(std::vector<std::string> &M)
     return message;
 }
 
-bool isPrime(int n)
+bool isPrime(t_ullong N)
 {
-    if (n <= 1)
+    if (N <= 1)
         return false;
-    if (n <= 3)
+    if (N <= 3)
         return true;
-    if (n % 2 == 0 || n % 3 == 0)
+    if (N % 2 == 0 || N % 3 == 0)
         return false;
 
-    for (int i = 5; i * i <= n; i = i + 6)
+    for (int i = 5; i * i <= N; i = i + 6)
     {
-        if (n % i == 0 || n % (i + 2) == 0)
+        if (N % i == 0 || N % (i + 2) == 0)
         {
             return false;
         }
@@ -139,14 +139,14 @@ bool isPrime(int n)
     return true;
 }
 
-int getPrime(int N)
+t_ullong getPrime(t_ullong N)
 {
     if (N <= 1)
     {
         return 2;
     }
 
-    int prime = N;
+    t_ullong prime = N;
     bool found = false;
 
     while (!found)
@@ -161,7 +161,7 @@ int getPrime(int N)
     return prime;
 }
 
-int gcd(int a, int b)
+t_ullong gcd(t_ullong a, t_ullong b)
 {
     if (b == 0)
     {
@@ -170,7 +170,7 @@ int gcd(int a, int b)
     return gcd(b, a % b);
 }
 
-int calculate_E(t_ullong Phi_N)
+t_ullong calculate_E(t_ullong Phi_N)
 {
     size_t i = 2;
     while (gcd(i, Phi_N) != 1)
@@ -187,7 +187,7 @@ int calculate_E(t_ullong Phi_N)
     }
 }
 
-int calculate_D(t_ullong Phi_N, t_ullong E)
+t_ullong calculate_D(t_ullong Phi_N, t_ullong E)
 {
     int k = 0;
     while (((k * Phi_N) + 1) % E != 0)
@@ -209,7 +209,7 @@ void print_hex(char *msg, int len)
 
 void printKeys(t_ullong E, t_ullong N, t_ullong D, t_ullong P, t_ullong Q, t_ullong phi)
 {
-    std::cout << "-Public key:\n      •P = " << P << "\n      •Q = " << Q << "\n      •Φ(N) = " << phi << "\n      •D = " << D << "\n   -Private key:\n      •N = " << N << "\n      •E = " << E << "\n" << std::endl;
+    std::cout << "-Public key:\n      •P = " << P << "\n      •Q = " << Q << "\n      •Φ(N) = " << phi << "\n      •D = " << D << "\n-Private key:\n      •N = " << N << "\n      •E = " << E << "\n" << std::endl;
 }
 
 std::string base64_encode(const std::string &in)

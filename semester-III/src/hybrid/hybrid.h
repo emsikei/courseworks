@@ -12,7 +12,7 @@
 
 std::pair<std::string, std::string> send(const std::string &message,
                                          const PublicKey &publicKey);
-std::string recieve(const std::string &encryptedMessage,
+std::string receive(const std::string &encryptedMessage,
                     const std::string &encryptedKey,
                     const PrivateKey &privateKey);
 
@@ -30,7 +30,7 @@ std::pair<std::string, std::string> send(const std::string &message,
     return std::make_pair(encryptedMessage, encryptedKey);
 }
 
-std::string recieve(const std::string &encryptedMessage,
+std::string receive(const std::string &encryptedMessage,
                     const std::string &encryptedKey,
                     const PrivateKey &privateKey)
 {

@@ -40,7 +40,8 @@ RSAKeys generateKeys();
 
 std::string RSA_Encrypt(std::string &message, const PublicKey &publicKey)
 {
-    if (message.length() > 117) {
+    if (message.length() > 117)
+    {
         std::cout << "Maximum message length - 117>";
         exit(-1);
     }
@@ -88,9 +89,9 @@ RSAKeys generateKeys()
     privateKey.D = D;
     privateKey.N = N;
 
-    printKeys(E, N, D, P, Q, Phi_N);
+    // printKeys(E, N, D, P, Q, Phi_N);
 
-        return RSAKeys(publicKey, privateKey);
+    return RSAKeys(publicKey, privateKey);
 }
 
 #endif
