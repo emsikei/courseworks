@@ -89,7 +89,6 @@ std::string AES_Decrypt(const std::string &encryptedMessage, const std::string &
     decryptedMessage += reinterpret_cast<char *>(dec_msg);;
     delete[] dec_msg;
   }
-  std::cout << std::endl;
 
   return decryptedMessage;
 }

@@ -4,5 +4,3 @@
 *.o
 
 _ex.cpp
-
-Makefile
