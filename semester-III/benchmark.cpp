@@ -77,8 +77,8 @@ void encryptBenchmark(std::pair<std::vector<std::string>, std::vector<std::strin
         encryptedMessages.second.push_back(encrypted_RSA);
 
         std::cout << "File size - " << filesSizes[i] << "KB: "
-                  << " AES - " << timeToEncryptAES.count() << "s\t"
-                  << " RSA - " << timeToEncryptRSA.count() << "s" << std::endl;
+                  << " AES - " << timeToEncryptAES.count() << " s\t"
+                  << " RSA - " << timeToEncryptRSA.count() << " s" << std::endl;
     }
 }
 
@@ -106,8 +106,8 @@ void decryptBenchmark(const std::pair<std::vector<std::string>, std::vector<std:
         timeToDecryptRSA = end - start;
 
         std::cout << "File size - " << filesSizes[i] << "KB: " 
-                  << " AES - " << timeToDecryptAES.count() << "s\t"
-                  << " RSA - " << timeToDecryptRSA.count() << "s" << std::endl;
+                  << " AES - " << timeToDecryptAES.count() << " s\t"
+                  << " RSA - " << timeToDecryptRSA.count() << " s" << std::endl;
     }
 }
 

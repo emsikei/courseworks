@@ -40,11 +40,11 @@ RSAKeys generateKeys();
 
 std::string RSA_Encrypt(std::string &message, const PublicKey &publicKey)
 {
-    if (message.length() > 117)
-    {
-        std::cout << "Maximum message length - 117>";
-        exit(-1);
-    }
+    // if (message.length() > 117)
+    // {
+    //     std::cout << "Maximum message length - 117>";
+    //     exit(-1);
+    // }
 
     std::string encryptedMessage;
     std::vector<t_ullong> M;
