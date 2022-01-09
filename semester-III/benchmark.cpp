@@ -1,3 +1,5 @@
+// AES-128 & RSA algorithms benchmark
+
 #include <iostream>
 #include <vector>
 #include <fstream>
@@ -7,20 +9,18 @@
 #include "src/aes/aes.h"
 #include "src/rsa/rsa.h"
 
-std::string getRandomString(const int len);
+typedef std::vector<std::string> vec;
 
+std::string getRandomString(const int len);
 void createFiles(const std::vector<int> &filesSizes);
 void removeFiles(const std::vector<int> &filesSizes);
 std::string getFileContent(int fileSize);
-
 void benchmark(const std::vector<int> &filesSizes);
-
-void encryptBenchmark(std::pair<std::vector<std::string>, std::vector<std::string>> &encryptedMessages,
+void encryptBenchmark(std::pair<vec, vec> &encryptedMessages,
                       const std::vector<int> &filesSizes,
                       const std::string &symmetricKey,
                       const PublicKey publicKey);
-
-void decryptBenchmark(const std::pair<std::vector<std::string>, std::vector<std::string>> &encryptedMessages,
+void decryptBenchmark(const std::pair<vec, vec> &encryptedMessages,
                       const std::vector<int> &filesSizes,
                       const std::string &symmetricKey,
                       const PrivateKey privateKey);
@@ -28,28 +28,30 @@ void decryptBenchmark(const std::pair<std::vector<std::string>, std::vector<std:
 int main()
 {
     std::vector<int> filesSizes = {32, 64, 128, 256, 512};
+    benchmark(filesSizes);
+}
 
-    std::cout << "\nCreating files...\n" << std::endl;
+// Main benchmark function. Accepts array of requested sizes
+void benchmark(const std::vector<int> &filesSizes)
+{
+    std::cout << "\nCreating files...\n"
+              << std::endl;
     createFiles(filesSizes);
 
-    benchmark(filesSizes);
+    std::string symmetricKey = generateSymmetricKey(16);
+    RSAKeys rsaKeys = generateKeys();
+
+    std::pair<vec, vec> encryptedMessages;
+
+    encryptBenchmark(encryptedMessages, filesSizes, symmetricKey, rsaKeys.publicKey);
+    decryptBenchmark(encryptedMessages, filesSizes, symmetricKey, rsaKeys.privateKey);
 
     std::cout << "\nRemoving files..." << std::endl;
     removeFiles(filesSizes);
 }
 
-void benchmark(const std::vector<int> &filesSizes)
-{
-    std::string symmetricKey = generateSymmetricKey(16);
-    RSAKeys rsaKeys = generateKeys();
-
-    std::pair<std::vector<std::string>, std::vector<std::string>> encryptedMessages;
-
-    encryptBenchmark(encryptedMessages, filesSizes, symmetricKey, rsaKeys.publicKey);
-    decryptBenchmark(encryptedMessages, filesSizes, symmetricKey, rsaKeys.privateKey);
-}
-
-void encryptBenchmark(std::pair<std::vector<std::string>, std::vector<std::string>> &encryptedMessages,
+// Benchmark for encryption
+void encryptBenchmark(std::pair<vec, vec> &encryptedMessages,
                       const std::vector<int> &filesSizes,
                       const std::string &symmetricKey,
                       const PublicKey publicKey)
@@ -82,7 +84,8 @@ void encryptBenchmark(std::pair<std::vector<std::string>, std::vector<std::strin
     }
 }
 
-void decryptBenchmark(const std::pair<std::vector<std::string>, std::vector<std::string>> &encryptedMessages,
+// Benchmark for decryption
+void decryptBenchmark(const std::pair<vec, vec> &encryptedMessages,
                       const std::vector<int> &filesSizes,
                       const std::string &symmetricKey,
                       const PrivateKey privateKey)
@@ -105,12 +108,13 @@ void decryptBenchmark(const std::pair<std::vector<std::string>, std::vector<std:
         end = std::chrono::system_clock::now();
         timeToDecryptRSA = end - start;
 
-        std::cout << "File size - " << filesSizes[i] << "KB: " 
+        std::cout << "File size - " << filesSizes[i] << "KB: "
                   << " AES - " << timeToDecryptAES.count() << " s\t"
                   << " RSA - " << timeToDecryptRSA.count() << " s" << std::endl;
     }
 }
 
+// Reads file content by its size and returns it
 std::string getFileContent(int fileSize)
 {
     std::string fileName = "text" + std::to_string(fileSize);
@@ -136,6 +140,7 @@ std::string getFileContent(int fileSize)
     return message;
 }
 
+// Creates list of files of given size
 void createFiles(const std::vector<int> &filesSizes)
 {
     for (size_t i = 0; i < filesSizes.size(); ++i)
@@ -148,18 +153,21 @@ void createFiles(const std::vector<int> &filesSizes)
     }
 }
 
+// Removes list of files of given size (used with createFiles())
 void removeFiles(const std::vector<int> &filesSizes)
 {
     for (size_t i = 0; i < filesSizes.size(); ++i)
     {
         std::string fileName = "text" + std::to_string(filesSizes[i]);
         fileName += "KB.txt";
-        [[maybe_unused]]int status = remove(fileName.c_str());
+        [[maybe_unused]] int status = remove(fileName.c_str());
     }
 }
 
+// Generates random string 
 std::string getRandomString(const int len)
 {
+    srand(time(0));
     static const char alphanum[] =
         "0123456789"
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
