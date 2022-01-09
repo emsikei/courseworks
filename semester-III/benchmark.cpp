@@ -1,5 +1,3 @@
-// AES-128 & RSA algorithms benchmark
-
 #include <iostream>
 #include <vector>
 #include <fstream>
@@ -9,18 +7,21 @@
 #include "src/aes/aes.h"
 #include "src/rsa/rsa.h"
 
-typedef std::vector<std::string> vec;
+typedef std::vector<std::string> t_vec;
+typedef std::chrono::system_clock t_clock;
+typedef std::chrono::duration<double> t_duration;
+typedef std::chrono::time_point<t_clock> t_timePoint;
 
 std::string getRandomString(const int len);
 void createFiles(const std::vector<int> &filesSizes);
 void removeFiles(const std::vector<int> &filesSizes);
 std::string getFileContent(int fileSize);
 void benchmark(const std::vector<int> &filesSizes);
-void encryptBenchmark(std::pair<vec, vec> &encryptedMessages,
+void encryptBenchmark(std::pair<t_vec, t_vec> &encryptedMessages,
                       const std::vector<int> &filesSizes,
                       const std::string &symmetricKey,
                       const PublicKey publicKey);
-void decryptBenchmark(const std::pair<vec, vec> &encryptedMessages,
+void decryptBenchmark(const std::pair<t_vec, t_vec> &encryptedMessages,
                       const std::vector<int> &filesSizes,
                       const std::string &symmetricKey,
                       const PrivateKey privateKey);
@@ -41,7 +42,7 @@ void benchmark(const std::vector<int> &filesSizes)
     std::string symmetricKey = generateSymmetricKey(16);
     RSAKeys rsaKeys = generateKeys();
 
-    std::pair<vec, vec> encryptedMessages;
+    std::pair<t_vec, t_vec> encryptedMessages;
 
     encryptBenchmark(encryptedMessages, filesSizes, symmetricKey, rsaKeys.publicKey);
     decryptBenchmark(encryptedMessages, filesSizes, symmetricKey, rsaKeys.privateKey);
@@ -51,30 +52,30 @@ void benchmark(const std::vector<int> &filesSizes)
 }
 
 // Benchmark for encryption
-void encryptBenchmark(std::pair<vec, vec> &encryptedMessages,
+void encryptBenchmark(std::pair<t_vec, t_vec> &encryptedMessages,
                       const std::vector<int> &filesSizes,
                       const std::string &symmetricKey,
                       const PublicKey publicKey)
 {
 
-    std::chrono::time_point<std::chrono::system_clock> start, end;
-    std::chrono::duration<double> timeToEncryptAES;
-    std::chrono::duration<double> timeToEncryptRSA;
+    t_timePoint start, end;
+    t_duration timeToEncryptAES;
+    t_duration timeToEncryptRSA;
 
     std::cout << "Encryption:" << std::endl;
     for (size_t i = 0; i < filesSizes.size(); ++i)
     {
         std::string message = getFileContent(filesSizes[i]);
 
-        start = std::chrono::system_clock::now();
+        start = t_clock::now();
         std::string encrypted_AES = AES_Encrypt(message, symmetricKey);
-        end = std::chrono::system_clock::now();
+        end = t_clock::now();
         timeToEncryptAES = end - start;
         encryptedMessages.first.push_back(encrypted_AES);
 
-        start = std::chrono::system_clock::now();
+        start = t_clock::now();
         std::string encrypted_RSA = RSA_Encrypt(message, publicKey);
-        end = std::chrono::system_clock::now();
+        end = t_clock::now();
         timeToEncryptRSA = end - start;
         encryptedMessages.second.push_back(encrypted_RSA);
 
@@ -85,27 +86,27 @@ void encryptBenchmark(std::pair<vec, vec> &encryptedMessages,
 }
 
 // Benchmark for decryption
-void decryptBenchmark(const std::pair<vec, vec> &encryptedMessages,
+void decryptBenchmark(const std::pair<t_vec, t_vec> &encryptedMessages,
                       const std::vector<int> &filesSizes,
                       const std::string &symmetricKey,
                       const PrivateKey privateKey)
 {
 
-    std::chrono::time_point<std::chrono::system_clock> start, end;
-    std::chrono::duration<double> timeToDecryptAES;
-    std::chrono::duration<double> timeToDecryptRSA;
+    t_timePoint start, end;
+    t_duration timeToDecryptAES;
+    t_duration timeToDecryptRSA;
 
     std::cout << "\nDecryption:" << std::endl;
     for (size_t i = 0; i < filesSizes.size(); ++i)
     {
-        start = std::chrono::system_clock::now();
+        start = t_clock::now();
         std::string decrypted_AES = AES_Decrypt(encryptedMessages.first[i], symmetricKey);
-        end = std::chrono::system_clock::now();
+        end = t_clock::now();
         timeToDecryptAES = end - start;
 
-        start = std::chrono::system_clock::now();
+        start = t_clock::now();
         std::string encrypted_RSA = RSA_Decrypt(encryptedMessages.second[i], privateKey);
-        end = std::chrono::system_clock::now();
+        end = t_clock::now();
         timeToDecryptRSA = end - start;
 
         std::cout << "File size - " << filesSizes[i] << "KB: "
