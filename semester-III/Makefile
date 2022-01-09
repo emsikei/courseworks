@@ -1,13 +1,9 @@
-CC = g++
+CC = g++ 
 
-bench: 
-	$(CC) benchmark.cpp -o benchmark.exe
-	./benchmark.exe
-algos: 
-	$(CC) algos_main.cpp -o algos.exe
-	./algos.exe
-hybrid: 
-	$(CC) hybrid_main.cpp -o hybrid.exe
-	./hybrid.exe
+all:
+	mkdir bin
+	$(CC) benchmark.cpp -o ./bin/bench
+	$(CC) algos_main.cpp -o ./bin/algos
+	$(CC) hybrid_main.cpp -o ./bin/hybrid
 clean:
-	-rm *.exe
+	-rm -rf ./bin
