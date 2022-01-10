@@ -151,6 +151,7 @@ void createFiles(const std::vector<int> &filesSizes)
         std::ofstream ofs(fileName, std::ios::binary | std::ios::out);
         std::string text = getRandomString(filesSizes[i] << 10);
         ofs.write(text.c_str(), text.length());
+        ofs.close();
     }
 }
 
