@@ -150,40 +150,31 @@ char *aes_decrypt(std::string message, unsigned char *expanded_key)
 
 void keyExpansionCore(unsigned char *in, unsigned char i)
 {
-  // Циклический сдвиг четырех в байтов влево на 1 и
-  // замена каждого байта в соотсвествии с
-  // таблицей подстановок s_box
   in[0] = s_box[in[0]];
   in[1] = s_box[in[1]];
   in[2] = s_box[in[2]];
   in[3] = s_box[in[3]];
 
-  // RCon XOR Rcon[i] = (RC[i], 0X00, 0X00, 0X00)
   in[0] ^= rcon[i];
 }
 
 void keyExpansion(unsigned char *input_key, unsigned char *expanded_key)
 {
-  // Копирование первых 16 байтов ключа в expanded_key
   for (int i = 0; i < 16; i++)
     expanded_key[i] = input_key[i];
 
-  // Первые 16 байтов уже были скопированы
   unsigned int bytes_generated = 16;
   int rcon_iteration = 1;
   unsigned char temp[4];
 
   while (bytes_generated < 176)
   {
-    // Считывание первых четырех байтов
     for (int i = 0; i < 4; i++)
       temp[i] = expanded_key[i + bytes_generated - 4];
 
-    // Выполнение keyExpansionCore один раз для каждого 16-байтного ключа
     if (bytes_generated % 16 == 0)
       keyExpansionCore(temp, rcon_iteration++);
 
-    // XOR temp с [bytes_generated-16], и сохранение в expanded_key
     for (unsigned char a = 0; a < 4; a++)
     {
       expanded_key[bytes_generated] = expanded_key[bytes_generated - 16] ^ temp[a];
@@ -194,7 +185,6 @@ void keyExpansion(unsigned char *input_key, unsigned char *expanded_key)
 
 void subBytes(unsigned char *state)
 {
-  // Substitute each state value with another byte in the Rijndael S-Box
   for (int i = 0; i < 16; i++)
     state[i] = s_box[state[i]];
 }
