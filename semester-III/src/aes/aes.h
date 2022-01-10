@@ -12,7 +12,7 @@
 std::string AES_Encrypt(const std::string &message, const std::string &key);
 std::string AES_Decrypt(const std::string &encryptedMessage, const std::string &key);
 char *aes_encrypt(char *message, unsigned char *expanded_key);
-char *aes_decrypt(std::string message, unsigned char *expanded_key);
+char *aes_decrypt(const std::string &message, unsigned char *expanded_key);
 
 void keyExpansion(unsigned char *input_key, unsigned char *expanded_key);
 void addRoundKey(unsigned char *state, unsigned char *round_key);
@@ -121,7 +121,7 @@ char *aes_encrypt(char *message, unsigned char *expanded_key)
   return enc_msg;
 }
 
-char *aes_decrypt(std::string message, unsigned char *expanded_key)
+char *aes_decrypt(const std::string &message, unsigned char *expanded_key)
 {
   const unsigned int ROUND_CNT = 9;
 
@@ -150,6 +150,9 @@ char *aes_decrypt(std::string message, unsigned char *expanded_key)
 
 void keyExpansionCore(unsigned char *in, unsigned char i)
 {
+  unsigned int * q = (unsigned int *) in;
+  *q = (*q >> 8 | ((*q & 0xff) << 24));
+
   in[0] = s_box[in[0]];
   in[1] = s_box[in[1]];
   in[2] = s_box[in[2]];

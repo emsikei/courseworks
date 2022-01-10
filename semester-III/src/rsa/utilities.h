@@ -209,7 +209,7 @@ void print_hex(char *msg, int len)
 
 void printKeys(t_ullong E, t_ullong N, t_ullong D, t_ullong P, t_ullong Q, t_ullong phi)
 {
-    std::cout << "-Public key:\n      •P = " << P << "\n      •Q = " << Q << "\n      •Φ(N) = " << phi << "\n      •D = " << D << "\n-Private key:\n      •N = " << N << "\n      •E = " << E << "\n" << std::endl;
+    std::cout << "-Public key:\n      \u00b7P = " << P << "\n      \u00b7Q = " << Q << "\n      \u00b7\u03a6(N) = " << phi << "\n      \u00b7D = " << D << "\n-Private key:\n      \u00b7N = " << N << "\n      \u00b7E = " << E << "\n" << std::endl;
 }
 
 std::string base64_encode(const std::string &in)
