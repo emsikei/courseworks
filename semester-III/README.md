@@ -1,6 +1,6 @@
 # Coursework for APA. Semester-III
 
-## Theme: Asymmetric and symmetric algorithms 
+## Theme: Asymmetric and symmetric encryption algorithms 
 
 ### Implemented AES & RSA algorightms (+hybrid cryptosystem)
 
