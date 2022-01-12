@@ -4,4 +4,4 @@
 
 ### Implemented AES & RSA algorightms (+hybrid cryptosystem)
 
-#### | **Authors:** _Bordea Victor, Gagauz Andrey_ 
+#### | **Authors:** _Bordea Victor, Gagauz Andrey_ (TI-208)
